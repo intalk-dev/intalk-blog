@@ -1,0 +1,47 @@
+name: Generate Daily Blog Posts
+
+on:
+  schedule:
+    # 매일 오전 9시 UTC (한국 시간 오후 6시)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  generate-posts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 # 30분 타임아웃
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Generate daily blog posts
+        run: pnpm tsx scripts/generate-daily-posts.ts
+        env:
+          DATABASE_URL: file:./dev.db
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          POSTS_PER_DAY: '5'
+          HOURS_BETWEEN_POSTS: '0'
+
+      - name: Publish posts immediately
+        run: |
+          curl -s -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://colemearchy.com/api/publish-posts
+        continue-on-error: true

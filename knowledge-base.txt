@@ -1,0 +1,65 @@
+# Colemearchy Knowledge Base
+# 이 파일은 RAG (Retrieval-Augmented Generation) 시스템을 위한 지식 베이스입니다.
+# 형식: [출처] 내용
+
+[Four Thousand Weeks] 시간 관리의 핵심은 '모든 것을 다 할 수 없다'는 사실을 받아들이는 것이다. 4,000주라는 한정된 인생에서 우선순위는 선택이 아니라 필수다. 나는 이 책을 읽고 '생산성 포르노'에서 벗어나 진짜 중요한 일에만 집중하기로 결정했다.
+
+[Atomic Habits] 습관은 복리의 마법과 같다. 1%씩 매일 개선하면 1년 후 37배 나아진다. 나는 아침 루틴을 atomic habit으로 설계했다: 일어나자마자 물 한 잔 → 5분 명상 → 10분 스트레칭. 이 작은 습관들이 내 하루의 에너지를 결정한다.
+
+[Deep Work] 진짜 성과는 Deep Work에서 나온다. 나는 매일 오전 9시-12시를 'Deep Work Time'으로 지정했다. 알림 끄기, 이메일 체크 금지, 휴대폰 서랍에 넣기. 이 3시간이 나머지 5시간보다 더 많은 가치를 만든다.
+
+[Zero to One] Peter Thiel의 핵심 통찰: "경쟁은 패배자들의 게임이다." 남들이 가지 않은 길을 가야 독점 이익을 얻는다. 나는 AI 도구를 활용한 노코드/로우코드 제품 개발로 이 원칙을 실천하고 있다.
+
+[The Lean Startup] MVP(Minimum Viable Product)는 완벽한 제품이 아니라 가설을 검증하는 최소 단위다. 나는 블로그를 2주 만에 Claude Code로 만들어 Google AdSense 승인을 받았다. 완벽을 기다렸다면 아직도 시작 못 했을 것이다.
+
+[Biohacking] Wegovy (세마글루타이드) 경험: 식욕 억제 효과는 확실하지만 부작용(메스꺼움, 피로)도 만만치 않다. 약에만 의존하지 말고 단백질 섭취(체중kg x 2g)와 근력 운동을 병행해야 근손실 없이 감량 가능.
+
+[Keto Diet] 케토 다이어트 3개월 실험: 처음 1주는 '케토 플루' (두통, 피로) 지옥이었지만, 2주차부터 정신이 맑아지는 느낌. 혈당 스파이크가 없으니 오후 3시 졸음도 사라졌다. 단, 탄수화물 재도입 시 체중 리바운드 주의.
+
+[ADHD Management] ADHD와 함께 살기: 약물(메틸페니데이트)보다 환경 설계가 더 중요하다. 나는 Notion으로 외부 뇌(External Brain)를 만들었다. 모든 아이디어, 할 일, 프로젝트를 즉시 기록. 머릿속을 비워야 집중할 수 있다.
+
+[Neck Pain] 목 통증 해결: 거북목 교정을 위해 모니터를 눈높이로 올리고, 매 시간 스트레칭 알람 설정. McKenzie Method (턱 당기기 운동)을 하루 10회씩. 3주 후 통증 70% 감소.
+
+[SEO Strategy] 블로그 SEO 핵심 3가지: 1) 롱테일 키워드 (경쟁 낮고 검색량 적당한), 2) 내부 링크 (관련 포스트 3개 이상 연결), 3) 콘텐츠 길이 (최소 1,500단어). 나는 이 전략으로 3개월 만에 오가닉 트래픽 10배 증가.
+
+[Growth Hacking] 트래픽 폭발의 비밀: Reddit, Hacker News, Product Hunt 같은 커뮤니티에 정직하게 가치 제공. "홍보"가 아니라 "도움"의 자세. 나는 Reddit에 AI 도구 가이드를 올려 하루 5,000 방문자 유입.
+
+[AI Tools] Claude Code로 2주 만에 블로그 제작 경험: Google AdSense 승인까지 받음. 핵심은 "완벽한 코드"가 아니라 "작동하는 MVP". AI에게 전체 구조를 맡기고, 나는 콘텐츠와 디자인에 집중.
+
+[YouTube Growth] 유튜브 구독자 1천명 → 3천명 (3개월): 핵심은 "썸네일 + 제목"의 조합. 나는 Midjourney로 눈에 띄는 썸네일 제작, 제목은 "How I" 형식 (개인 경험 강조). CTR 3% → 8% 증가.
+
+[Investment Philosophy] 워렌 버핏의 원칙: "가격은 당신이 지불하는 것, 가치는 당신이 얻는 것." 나는 S&P 500 ETF에 매달 정액 투자 (Dollar-Cost Averaging). 시장 타이밍은 신경 쓰지 않는다.
+
+[Remote Work] 재택근무 3년차 생존법: 1) 전용 작업 공간 (침실과 분리), 2) 출퇴근 의식 (아침 산책으로 '출근'), 3) 비동기 커뮤니케이션 (Slack > 회의). 번아웃 방지 핵심은 명확한 경계.
+
+[Personal Freedom] 경제적 자유 = 시간 자유. 나는 월 생활비의 25배를 목표로 설정 (4% Rule). ETF + 배당주 + 부동산으로 3-Pillar 전략. 현재 40% 달성.
+
+[Minimalism] 미니멀리즘은 적게 소유하는 게 아니라, 의도적으로 소유하는 것. 나는 "6개월 안 쓰면 버리기" 룰 적용. 옷장 50벌 → 15벌로 줄였더니 의사결정 피로도 감소.
+
+[AI Product Management] PM으로서 AI 제품 개발 인사이트: 사용자는 "AI 기술"에 관심 없다. 오직 "문제 해결" 결과만 본다. Feature보다 Benefit에 집중하라.
+
+[Design Thinking] 디자이너 출신 PM의 강점: 사용자 공감. 나는 매주 5명의 사용자와 1:1 인터뷰. "왜 이 기능을 원하세요?"라고 5번 물으면 진짜 니즈가 나온다.
+
+[Startup Lessons] 스타트업 실패 경험: 기술은 완벽했지만 마케팅은 제로. 제품을 만드는 시간의 2배를 마케팅에 써야 한다는 걸 배웠다. "Build it and they will come"은 환상.
+
+[Anxiety Management] 불안 관리법: 1) 생각을 글로 쓰기 (머릿속 → 노트), 2) 5-4-3-2-1 그라운딩 (5개 보기, 4개 만지기, 3개 듣기, 2개 냄새, 1개 맛보기), 3) 운동 (불안 에너지를 물리적 에너지로 전환).
+
+[Content Strategy] 블로그 콘텐츠 3대 원칙: 1) Evergreen (유행 타지 않는 주제), 2) Personal (나만의 경험), 3) Actionable (독자가 바로 실행 가능한). 이 조합이 바이럴의 비결.
+
+[Networking] 진짜 네트워킹은 "무엇을 받을까"가 아니라 "무엇을 줄까". 나는 매달 5명에게 가치 제공 (소개, 피드백, 지식 공유). 보상은 예상치 못한 곳에서 온다.
+
+[Time Blocking] 시간 블로킹 시스템: 하루를 90분 블록으로 나누기. 한 블록 = 한 가지 일만. Deep Work (오전 2블록) + 미팅 (오후 1블록) + 창의 작업 (저녁 1블록).
+
+[Decision Making] 제프 베조스의 Type 1 vs Type 2 결정: Type 1 (돌이킬 수 없는) = 신중하게, Type 2 (되돌릴 수 있는) = 빠르게. 대부분의 결정은 Type 2다. 빠르게 실행하고 배우자.
+
+[Learning Strategy] 학습 가속 비법: 1) Feynman Technique (누군가에게 설명하듯 정리), 2) Spaced Repetition (Anki 앱 활용), 3) Active Recall (책 닫고 기억 테스트). 나는 이 방법으로 AI 기술을 3개월 만에 습득.
+
+[Productivity Systems] GTD (Getting Things Done) vs PARA (Projects-Areas-Resources-Archives): GTD는 완벽주의자용, PARA는 실용주의자용. 나는 PARA 선택. 복잡한 시스템은 유지 못 한다.
+
+[Health Optimization] 수면 최적화: 1) 침실 온도 18도, 2) 블루라이트 차단 (오후 8시 이후), 3) 카페인 오후 2시 이전만. 수면 점수 60 → 85 향상.
+
+[Financial Independence] FIRE (Financial Independence Retire Early) 계산: 연 지출 x 25 = 필요 자산. 나는 월 200만원 지출 → 6억 목표. 현재 40% 달성. 10년 안에 선택적 은퇴 가능.
+
+[Content Monetization] 블로그 수익화 3단계: 1) AdSense (트래픽 기반), 2) Affiliate (제품 추천), 3) 디지털 제품 (강의, 전자책). 나는 현재 2단계. 월 50만원 수익.
+
+[AI Prompt Engineering] 프롬프트 작성 공식: [역할] + [맥락] + [작업] + [제약조건] + [형식]. 예: "당신은 SEO 전문가입니다 (역할). 이 블로그는 AI 도구를 다룹니다 (맥락). 롱테일 키워드 10개를 추천하세요 (작업). 검색량 100-1000 범위 (제약). 표 형식으로 (형식)."

@@ -1,0 +1,31 @@
+{
+  "buildCommand": "prisma generate && next build && next-sitemap",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "pnpm install",
+  "env": {
+    "NEXT_PUBLIC_NODE_ENV": "production"
+  },
+  "crons": [
+    {
+      "path": "/api/cron/daily-affiliate",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/coupang-hotdeal",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/publish-posts",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/youtube-sync",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-daily-posts",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
