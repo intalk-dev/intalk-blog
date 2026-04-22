@@ -1,8 +1,16 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaLibSQL } from '@prisma/adapter-libsql'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const prisma = new PrismaClient()
+const tursoUrl = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || ''
+const adapter = tursoUrl.startsWith('libsql://')
+  ? new PrismaLibSQL({ url: tursoUrl, authToken: process.env.DATABASE_AUTH_TOKEN || '' })
+  : undefined
+
+const prisma = adapter
+  ? new PrismaClient({ adapter })
+  : new PrismaClient()
 
 interface SeoPost {
   title: string
