@@ -36,7 +36,7 @@ export const featuresConfig = {
   viewCounter: true,
 
   /** 다국어 지원 (false면 defaultLocale만 사용) */
-  i18n: true,
+  i18n: false,
 
   /** 관련 포스트 추천 */
   relatedPosts: true,
