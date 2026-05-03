@@ -46,8 +46,8 @@ next-env.d.ts
 /public/uploads/
 public/downloads/*.dmg
 
-# scripts (not needed for production)
-/scripts/
+# scripts - tracked for GitHub Actions automation
+# /scripts/
 
 # log files
 dev.log

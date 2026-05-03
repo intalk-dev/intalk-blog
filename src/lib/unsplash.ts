@@ -77,57 +77,46 @@ export async function searchUnsplashImage(
 }
 
 /**
- * 블로그 포스트 제목에서 적절한 검색 키워드 추출
+ * 블로그 포스트 제목에서 적절한 검색 키워드 추출 (보험 전문)
  */
 export function extractImageKeywords(title: string): string {
-  // 한글 제목 처리
-  const koreanKeywords: Record<string, string> = {
-    '수학': 'mathematics study',
-    '영어': 'english learning',
-    '과학': 'science education',
-    '수능': 'exam preparation',
-    '내신': 'school study',
-    '공부': 'studying',
-    '시험': 'test exam',
-    '대학': 'university college',
-    '입시': 'college admission',
-    '독해': 'reading comprehension',
-    '문법': 'grammar',
-    '듣기': 'listening',
+  const insuranceKeywords: Record<string, string> = {
+    '자동차': 'car insurance driving',
+    '생명': 'life insurance family',
+    '건강': 'health insurance medical',
+    '암보험': 'medical health care',
+    '실손': 'hospital medical care',
+    '화재': 'home insurance house',
+    '여행': 'travel insurance airport',
+    '치아': 'dental health care',
+    '연금': 'retirement planning senior',
+    '절세': 'tax planning finance',
+    '노후': 'retirement elderly senior',
+    '가족': 'family protection home',
+    '사고': 'accident safety protection',
+    '병원': 'hospital medical doctor',
+    '재테크': 'financial planning money',
+    '보험료': 'insurance cost money',
+    '보장': 'insurance protection shield',
+    '설계': 'financial planning meeting',
+    '청구': 'insurance claim document',
+    '트렌드': 'technology innovation digital',
+    '디지털': 'digital technology fintech',
+    '반려동물': 'pet dog cat animal',
+    '부부': 'couple family marriage',
+    '신혼': 'newlywed couple wedding',
+    '어린이': 'children family kids',
+    '은퇴': 'retirement senior peaceful',
   }
 
-  // 영어 제목 처리
-  const englishKeywords: Record<string, string> = {
-    'IIT': 'engineering students india',
-    'JEE': 'exam preparation india',
-    'SAT': 'standardized test',
-    'ACT': 'college test',
-    'CMA': 'ai technology education',
-    'study': 'students studying',
-    'exam': 'exam preparation',
-    'college': 'university campus',
-    'preparation': 'study preparation',
-  }
-
-  // 제목에서 키워드 찾기
-  const titleLower = title.toLowerCase()
-
-  // 한글 키워드 확인
-  for (const [korean, english] of Object.entries(koreanKeywords)) {
-    if (title.includes(korean)) {
-      return english
-    }
-  }
-
-  // 영어 키워드 확인
-  for (const [keyword, search] of Object.entries(englishKeywords)) {
-    if (titleLower.includes(keyword.toLowerCase())) {
+  for (const [keyword, search] of Object.entries(insuranceKeywords)) {
+    if (title.includes(keyword)) {
       return search
     }
   }
 
-  // 기본값: 일반적인 학습 이미지
-  return 'students studying'
+  // 기본값: 보험/금융 관련 이미지
+  return 'insurance financial protection'
 }
 
 /**
@@ -181,7 +170,7 @@ export function optimizeUnsplashUrl(url: string): string {
  * 이미지 attribution (저작권 표시)
  */
 export function getImageAttribution(image: UnsplashImage): string {
-  return `Photo by <a href="${image.links.html}?utm_source=colemearchy_blog&utm_medium=referral">${image.user.name}</a> on <a href="https://unsplash.com?utm_source=colemearchy_blog&utm_medium=referral">Unsplash</a>`
+  return `Photo by <a href="${image.links.html}?utm_source=intalk_blog&utm_medium=referral">${image.user.name}</a> on <a href="https://unsplash.com?utm_source=intalk_blog&utm_medium=referral">Unsplash</a>`
 }
 
 /**

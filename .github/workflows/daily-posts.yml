@@ -36,12 +36,13 @@ jobs:
           DATABASE_URL: file:./dev.db
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           POSTS_PER_DAY: '5'
           HOURS_BETWEEN_POSTS: '0'
 
       - name: Publish posts immediately
         run: |
           curl -s -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://colemearchy.com/api/publish-posts
+            https://blog.intalkpartners.com/api/publish-posts
         continue-on-error: true
