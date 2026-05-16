@@ -17,7 +17,7 @@ import { calculateReadingTime, formatReadingTime } from '@/lib/reading-time'
 import ViewCounter from '@/components/ViewCounter'
 import { siteConfig, brandConfig, navigationConfig, featuresConfig } from '@/config'
 import IntalkPartnersCTA from '@/components/IntalkPartnersCTA'
-import FloatingPartnerButton from '@/components/FloatingPartnerButton'
+import StickyPartnerBanner from '@/components/StickyPartnerBanner'
 import { shouldUseNextImage } from '@/lib/image-utils'
 import { optimizeUnsplashUrl } from '@/lib/unsplash'
 import { tagsToArray } from '@/lib/utils/tags'
@@ -423,7 +423,7 @@ export default async function PostPage({
           </div>
         </footer>
 
-        {featuresConfig.intalkPartnersCTA && <FloatingPartnerButton />}
+        {featuresConfig.intalkPartnersCTA && <StickyPartnerBanner />}
       </div>
     </>
   )
