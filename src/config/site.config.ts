@@ -69,6 +69,11 @@ export const siteConfig = {
   analytics: {
     gaId: 'G-3RF4PQCTHW',
   },
+
+  /** CTA (Call-to-Action) 설정 */
+  cta: {
+    url: 'https://www.intalkpartners.com',
+  },
 } as const
 
 /** siteConfig의 locale 타입 */

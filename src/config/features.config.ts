@@ -43,4 +43,7 @@ export const featuresConfig = {
 
   /** 목차 (Table of Contents) */
   tableOfContents: true,
+
+  /** 인톡 파트너스 CTA (글 하단 배너 + 플로팅 버튼) */
+  intalkPartnersCTA: true,
 } as const

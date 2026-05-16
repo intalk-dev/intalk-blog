@@ -16,6 +16,8 @@ import YouTubeEmbed from '@/components/YouTubeEmbed'
 import { calculateReadingTime, formatReadingTime } from '@/lib/reading-time'
 import ViewCounter from '@/components/ViewCounter'
 import { siteConfig, brandConfig, navigationConfig, featuresConfig } from '@/config'
+import IntalkPartnersCTA from '@/components/IntalkPartnersCTA'
+import FloatingPartnerButton from '@/components/FloatingPartnerButton'
 import { shouldUseNextImage } from '@/lib/image-utils'
 import { optimizeUnsplashUrl } from '@/lib/unsplash'
 import { tagsToArray } from '@/lib/utils/tags'
@@ -391,6 +393,8 @@ export default async function PostPage({
 
               <MarkdownContent content={content} />
 
+              {featuresConfig.intalkPartnersCTA && <IntalkPartnersCTA />}
+
               <Suspense fallback={<div className="h-32 animate-pulse bg-gray-100 rounded mt-8" />}>
                 <RelatedPosts postId={post.id} />
               </Suspense>
@@ -418,6 +422,8 @@ export default async function PostPage({
             </p>
           </div>
         </footer>
+
+        {featuresConfig.intalkPartnersCTA && <FloatingPartnerButton />}
       </div>
     </>
   )
