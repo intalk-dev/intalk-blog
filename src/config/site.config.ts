@@ -73,6 +73,9 @@ export const siteConfig = {
   /** CTA (Call-to-Action) 설정 */
   cta: {
     url: 'https://www.intalkpartners.com',
+    heading: '내 보험, 내가 직접 가입하고 수익도 받자',
+    subheading: '인톡 파트너스로 보험 설계부터 수익까지 한번에',
+    buttonLabel: '인톡 파트너스 알아보기',
   },
 } as const
 
