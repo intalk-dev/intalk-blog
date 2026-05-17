@@ -242,7 +242,7 @@ OUTPUT FORMAT (JSON only, no markdown code blocks):
         excerpt ||
         `${threadPost.username}의 Threads 글을 바탕으로 작성된 블로그 포스트입니다.`,
       tags: Array.isArray(tags) ? tags.join(',') : tags || '',
-      author: 'Colemearchy',
+      author: '인톡보험전문가',
       status: autoPublish ? 'PUBLISHED' : 'DRAFT',
       publishedAt: autoPublish ? new Date() : null,
       threadsPostId: threadPost.id,

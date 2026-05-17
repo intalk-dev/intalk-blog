@@ -325,7 +325,7 @@ OUTPUT FORMAT:
         content: finalContent,
         excerpt: generatedData.excerpt || `${metadata.title} 영상을 요약하고 핵심 인사이트를 정리했습니다.`,
         tags: Array.isArray(tags) ? tags.join(',') : (tags || ''),
-        author: 'Colemearchy',
+        author: '인톡보험전문가',
         status: autoPublish ? 'PUBLISHED' : 'DRAFT',
         publishedAt: autoPublish ? new Date() : null,
         youtubeVideoId: videoId,

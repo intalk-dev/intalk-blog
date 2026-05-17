@@ -9,6 +9,7 @@ import { generateContentSchema } from '@/lib/validations';
 import { generateSlug, generateUniqueSlugWithTimestamp } from '@/lib/utils/slug';
 import { detectLanguage } from '@/lib/translation';
 import { autoGenerateThumbnailUrl } from '@/lib/utils/thumbnail';
+import { searchUnsplashImage, getOptimizedImageUrl, extractImageKeywords } from '@/lib/unsplash';
 import { tagsToArray, tagsToString } from '@/lib/utils/tags'
 import { unwrapContent } from '@/lib/utils/content'
 import { checkGeminiRateLimit, createRateLimitResponse } from '@/lib/rate-limit';
@@ -109,14 +110,31 @@ async function generateContentHandler(request: NextRequest) {
       title: parsedContent.title || prompt
     });
 
-    // Auto-generate thumbnail URL if no coverImage provided
+    // 커버 이미지: AI 제공 → Unsplash 검색 → 자동 생성(OG) 폴백
     const postTitle = parsedContent.title || prompt;
-    const coverImageUrl = parsedContent.coverImage || autoGenerateThumbnailUrl(postTitle, request);
+    let coverImageUrl: string = parsedContent.coverImage || '';
+    let coverImageSource = parsedContent.coverImage ? 'ai' : 'none';
+
+    if (!coverImageUrl) {
+      try {
+        const unsplashImage = await searchUnsplashImage(extractImageKeywords(postTitle), 'landscape');
+        if (unsplashImage) {
+          coverImageUrl = getOptimizedImageUrl(unsplashImage, 1200, 80);
+          coverImageSource = 'unsplash';
+        }
+      } catch (e) {
+        console.warn('Unsplash 썸네일 검색 실패:', e);
+      }
+    }
+    if (!coverImageUrl) {
+      // Unsplash 실패 시 OG 이미지 자동 생성으로 폴백
+      coverImageUrl = autoGenerateThumbnailUrl(postTitle, request);
+      coverImageSource = 'auto-generate';
+    }
 
     logger.info('Thumbnail generation for new post', {
       title: postTitle,
-      hasAICoverImage: !!parsedContent.coverImage,
-      generatedThumbnailUrl: !parsedContent.coverImage ? coverImageUrl : null
+      source: coverImageSource,
     });
 
     // TEMPORARY DEBUG: Log tags type and value
@@ -138,7 +156,7 @@ async function generateContentHandler(request: NextRequest) {
         coverImage: coverImageUrl,
         status: 'DRAFT',
         scheduledAt,
-        author: 'Colemearchy AI',
+        author: '인톡보험전문가',
         originalLanguage: detectedLanguage
       }
     });

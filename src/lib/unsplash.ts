@@ -81,6 +81,20 @@ export async function searchUnsplashImage(
  */
 export function extractImageKeywords(title: string): string {
   const keywordMap: Record<string, string> = {
+    // 보험 (Insurance) — 인톡 블로그 도메인
+    '생명보험': 'life insurance family protection',
+    '자동차보험': 'car insurance vehicle road',
+    '실손보험': 'health insurance medical care',
+    '건강보험': 'health insurance hospital',
+    '암보험': 'cancer insurance health checkup',
+    '운전자보험': 'car driving insurance safety',
+    '화재보험': 'home fire insurance house',
+    '연금보험': 'retirement pension savings finance',
+    '보험금 청구': 'insurance claim paperwork documents',
+    '보험금': 'insurance claim documents',
+    '보험료': 'insurance payment finance calculator',
+    '보험 가입': 'insurance contract signing agreement',
+    '보험': 'insurance document protection family',
     // AI & Tech
     'AI': 'artificial intelligence technology',
     '인공지능': 'artificial intelligence robot',

@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
             seoTitle: parsed.seoTitle || parsed.title,
             seoDescription: parsed.seoDesc || parsed.excerpt || parsed.content.substring(0, 160),
             status: 'PUBLISHED',
-            author: 'Colemearchy',
+            author: '인톡보험전문가',
             publishedAt: publishTimes[i],
             createdAt: new Date()
           }
