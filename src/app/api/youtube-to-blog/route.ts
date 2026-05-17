@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { MASTER_SYSTEM_PROMPT } from '@/lib/ai-prompts'
 import { getVideoMetadataForBlog } from '@/lib/youtube'
 import { YouTubeTranscriptService } from '@/lib/youtube-transcript'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { env } from '@/lib/env'
 import { withErrorHandler, logger, ApiError, createSuccessResponse } from '@/lib/error-handler'
 import { generateSlug, generateUniqueSlug } from '@/lib/utils/slug'
@@ -13,7 +13,7 @@ import { backupSinglePost } from '@/lib/auto-backup'
 import { findMatchingProducts } from '@/lib/utils/affiliate-product-matcher'
 import { injectAffiliateLinks } from '@/lib/utils/affiliate-link-injector'
 
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
+const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const { videoId, autoPublish = false } = await request.json();
@@ -85,9 +85,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     type: isShort ? 'Shorts' : 'Regular'
   });
 
-  // Generate blog content using Gemini
+  // Generate blog content using Claude
   logger.info('Generating blog content', { videoId, isShort });
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
 
   // Process in chunks if needed
   let generatedContent = '';
@@ -105,9 +104,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           isShort
         )
 
-        const result = await model.generateContent(prompt)
-        const response = await result.response
-        generatedContent += response.text() + '\n\n'
+        const message = await anthropic.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        })
+        const firstBlock = message.content[0]
+        generatedContent += (firstBlock?.type === 'text' ? firstBlock.text : '') + '\n\n'
 
         // Small delay between chunks to avoid rate limiting
         if (i < processedTranscript.chunks.length - 1) {
@@ -123,9 +126,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         isShort
       )
 
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      generatedContent = response.text()
+      const message = await anthropic.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 8192,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const firstBlock = message.content[0]
+      generatedContent = firstBlock?.type === 'text' ? firstBlock.text : ''
     }
 
     // Enhance content differently based on video type
@@ -216,11 +223,15 @@ OUTPUT FORMAT:
 }
     `.trim()
 
-    const finalModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-    const finalResult = await finalModel.generateContent(blogPrompt)
-    const finalResponse = await finalResult.response
-    const finalText = finalResponse.text()
-    
+    const finalMessage = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: blogPrompt }],
+    })
+    const finalFirstBlock = finalMessage.content[0]
+    const finalText = finalFirstBlock?.type === 'text' ? finalFirstBlock.text : ''
+
+
   let generatedData;
   try {
     const jsonMatch = finalText.match(/\{[\s\S]*\}/);

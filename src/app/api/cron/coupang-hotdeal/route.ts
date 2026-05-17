@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { generateAffiliateContentPrompt } from '@/lib/ai-prompts'
 import { injectAffiliateLinks } from '@/lib/utils/affiliate-link-injector'
 import { generateUniqueSlugWithTimestamp } from '@/lib/utils/slug'
@@ -17,7 +17,7 @@ function getTurso() {
   return _turso
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
 
 /**
  * Vercel Cron Job: 쿠팡 베스트셀러/핫딜 자동 포스팅
@@ -40,10 +40,8 @@ export async function GET(request: NextRequest) {
 
     console.log('🔥 쿠팡 핫딜 자동 포스팅 시작...')
 
-    // 2. Gemini에게 "오늘의 추천템" 요청
-    // 실제로는 쿠팡 API를 사용하지만, 여기서는 Gemini가 트렌드 상품 추천
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-
+    // 2. Claude에게 "오늘의 추천템" 요청
+    // 실제로는 쿠팡 API를 사용하지만, 여기서는 Claude가 트렌드 상품 추천
     const trendPrompt = `
 당신은 15년차 블로그 성장 전략가이자 쿠팡 파트너스 전문가입니다.
 
@@ -80,18 +78,15 @@ export async function GET(request: NextRequest) {
 - 각 상품에 [AFFILIATE_LINK_PLACEHOLDER_{상품명}] 삽입
 `
 
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{ text: trendPrompt }]
-      }],
-      generationConfig: {
-        temperature: 0.9,
-        maxOutputTokens: 8192,
-      }
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 8192,
+      temperature: 0.9,
+      messages: [{ role: 'user', content: trendPrompt }],
     })
 
-    const responseText = result.response.text()
+    const firstBlock = message.content[0]
+    const responseText = firstBlock?.type === 'text' ? firstBlock.text : ''
 
     // 3. JSON 파싱
     let jsonText = responseText.trim()

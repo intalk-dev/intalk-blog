@@ -7,8 +7,8 @@ import { prisma } from '@/lib/prisma'
 import { MASTER_SYSTEM_PROMPT } from '@/lib/ai-prompts'
 import { getVideoMetadataForBlog } from '@/lib/youtube'
 import { YouTubeTranscriptService } from '@/lib/youtube-transcript'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getSettingValue } from '@/lib/settings'
+import Anthropic from '@anthropic-ai/sdk'
+import { env } from '@/lib/env'
 import { logger, ApiError } from '@/lib/error-handler'
 import { generateSlug, generateUniqueSlug } from '@/lib/utils/slug'
 import { detectLanguage } from '@/lib/translation'
@@ -16,15 +16,14 @@ import { backupSinglePost } from '@/lib/auto-backup'
 import { findMatchingProducts } from '@/lib/utils/affiliate-product-matcher'
 import { injectAffiliateLinks } from '@/lib/utils/affiliate-link-injector'
 
-// Lazy-initialized Gemini client
-let _genAI: GoogleGenerativeAI | null = null
+// Lazy-initialized Anthropic client
+let _anthropic: Anthropic | null = null
 
-async function getGenAI(): Promise<GoogleGenerativeAI> {
-  if (_genAI) return _genAI
-  const apiKey = await getSettingValue('GEMINI_API_KEY')
-  if (!apiKey) throw new ApiError(500, 'GEMINI_API_KEY not configured')
-  _genAI = new GoogleGenerativeAI(apiKey)
-  return _genAI
+function getAnthropic(): Anthropic {
+  if (_anthropic) return _anthropic
+  if (!env.ANTHROPIC_API_KEY) throw new ApiError(500, 'ANTHROPIC_API_KEY not configured')
+  _anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+  return _anthropic
 }
 
 export interface ConvertVideoToBlogOptions {
@@ -116,10 +115,9 @@ export async function convertVideoToBlog(
     type: isShort ? 'Shorts' : 'Regular'
   })
 
-  // Generate blog content using Gemini
+  // Generate blog content using Claude
   logger.info('Generating blog content', { videoId, isShort })
-  const genAI = await getGenAI()
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+  const anthropic = getAnthropic()
 
   // Process in chunks if needed
   let generatedContent = ''
@@ -137,9 +135,13 @@ export async function convertVideoToBlog(
         isShort
       )
 
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      generatedContent += response.text() + '\n\n'
+      const message = await anthropic.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 8192,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const firstBlock = message.content[0]
+      generatedContent += (firstBlock?.type === 'text' ? firstBlock.text : '') + '\n\n'
 
       // Small delay between chunks to avoid rate limiting
       if (i < processedTranscript.chunks.length - 1) {
@@ -155,9 +157,13 @@ export async function convertVideoToBlog(
       isShort
     )
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    generatedContent = response.text()
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const firstBlock = message.content[0]
+    generatedContent = firstBlock?.type === 'text' ? firstBlock.text : ''
   }
 
   // Enhance content differently based on video type
@@ -248,10 +254,13 @@ OUTPUT FORMAT:
 }
   `.trim()
 
-  const finalModel = (await getGenAI()).getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-  const finalResult = await finalModel.generateContent(blogPrompt)
-  const finalResponse = await finalResult.response
-  const finalText = finalResponse.text()
+  const finalMessage = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 8192,
+    messages: [{ role: 'user', content: blogPrompt }],
+  })
+  const finalFirstBlock = finalMessage.content[0]
+  const finalText = finalFirstBlock?.type === 'text' ? finalFirstBlock.text : ''
 
   let generatedData
   try {

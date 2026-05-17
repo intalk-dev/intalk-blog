@@ -2,16 +2,15 @@ export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { google } from 'googleapis'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
+import { env } from '@/lib/env'
 import { getSettingValue } from '@/lib/settings'
 
 // YouTube 영상 정보로 AI 콘텐츠 생성
 async function generateAIContent(video: any) {
-  const geminiKey = await getSettingValue('GEMINI_API_KEY')
-  if (!geminiKey) throw new Error('GEMINI_API_KEY not configured')
-  const genAI = new GoogleGenerativeAI(geminiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-  
+  if (!env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not configured')
+  const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+
   const prompt = `
 당신은 YouTube 영상을 블로그 포스트로 변환하는 전문 콘텐츠 크리에이터입니다.
 
@@ -41,8 +40,13 @@ async function generateAIContent(video: any) {
 `
 
   try {
-    const result = await model.generateContent(prompt)
-    const content = result.response.text()
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const firstBlock = message.content[0]
+    const content = firstBlock?.type === 'text' ? firstBlock.text : ''
     return content
   } catch (error) {
     console.error('AI content generation failed:', error)
@@ -174,7 +178,6 @@ export async function GET(request: NextRequest) {
     // API 키 확인
     const apiKey = await getSettingValue('YOUTUBE_API_KEY')
     const channelId = await getSettingValue('YOUTUBE_CHANNEL_ID')
-    const geminiKey = await getSettingValue('GEMINI_API_KEY')
 
     if (!apiKey || !channelId) {
       return NextResponse.json({
@@ -182,8 +185,8 @@ export async function GET(request: NextRequest) {
       }, { status: 500 })
     }
 
-    if (!geminiKey) {
-      console.warn('Gemini API key not configured, will use basic content')
+    if (!env.ANTHROPIC_API_KEY) {
+      console.warn('Anthropic API key not configured, will use basic content')
     }
 
     // 최근 24시간 내의 영상 가져오기

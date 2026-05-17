@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { env } from './env'
 
 export function detectLanguage(text: string): 'ko' | 'en' {
@@ -18,10 +18,8 @@ export function detectLanguage(text: string): 'ko' | 'en' {
 
 export async function translate(text: string, targetLang: 'en' | 'ko', context: 'title' | 'content' | 'excerpt' = 'content'): Promise<string> {
   try {
-    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
-    // Use gemini-2.5-pro for translations (latest and most capable)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' })
-    
+    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+
     let prompt = ''
     
     switch (context) {
@@ -87,9 +85,13 @@ Provide only the translated content without any explanation.`
         break
     }
     
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    return response.text().trim()
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const firstBlock = message.content[0]
+    return (firstBlock?.type === 'text' ? firstBlock.text : '').trim()
   } catch (error) {
     console.error('Translation error details:', {
       error,
@@ -122,8 +124,7 @@ export async function createPostTranslation(post: {
   // Optimize: Batch all translations in a single API call instead of 5 separate calls
   // This reduces API quota usage from 5 calls to 1 call per post
   try {
-    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' })
+    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
 
     const sourceFields = {
       title: post.title,
@@ -166,9 +167,13 @@ ${JSON.stringify(sourceFields, null, 2)}
 
 Important: Return ONLY the JSON object with translated values. No explanation or markdown code blocks.`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    let responseText = response.text().trim()
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const firstBlock = message.content[0]
+    let responseText = (firstBlock?.type === 'text' ? firstBlock.text : '').trim()
 
     // Remove markdown code block wrapper if present
     if (responseText.startsWith('```json')) {

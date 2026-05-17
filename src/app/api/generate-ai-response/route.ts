@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
 
 // POST /api/generate-ai-response - AI Devil's Advocate 응답 생성
 export async function POST(request: NextRequest) {
@@ -14,16 +14,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-    if (!GEMINI_API_KEY) {
+    const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
+    if (!ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'Gemini API key not configured' },
+        { error: 'Anthropic API key not configured' },
         { status: 500 }
       )
     }
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY })
 
     const prompt = `당신은 Devil's Advocate AI로서 사용자의 의견에 건설적인 반대 의견을 제시합니다.
 
@@ -36,18 +35,15 @@ export async function POST(request: NextRequest) {
 4. 2-3 단락으로 간결하게 작성하세요
 5. 한국어로 작성하세요`
 
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 500,
-      }
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 500,
+      temperature: 0.8,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    const aiResponse = result.response.text()
+    const firstBlock = message.content[0]
+    const aiResponse = firstBlock?.type === 'text' ? firstBlock.text : ''
 
     return NextResponse.json({ aiResponse })
   } catch (error) {

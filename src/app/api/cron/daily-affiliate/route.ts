@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@libsql/client'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Anthropic from '@anthropic-ai/sdk'
 import { generateAffiliateContentPrompt } from '@/lib/ai-prompts'
 import { injectAffiliateLinks } from '@/lib/utils/affiliate-link-injector'
 import { generateUniqueSlugWithTimestamp } from '@/lib/utils/slug'
@@ -18,7 +18,7 @@ function getTurso() {
   return _turso
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' })
 
 /**
  * Vercel Cron Job: 매일 자동으로 제휴 콘텐츠 생성 및 발행
@@ -90,19 +90,15 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-    const geminiResult = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{ text: prompt }]
-      }],
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 8192,
-      }
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 8192,
+      temperature: 0.8,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    const responseText = geminiResult.response.text()
+    const firstBlock = message.content[0]
+    const responseText = firstBlock?.type === 'text' ? firstBlock.text : ''
 
     // 4. JSON 파싱
     let jsonText = responseText.trim()

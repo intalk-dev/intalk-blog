@@ -6,8 +6,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { MASTER_SYSTEM_PROMPT } from '@/lib/ai-prompts'
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getSettingValue } from '@/lib/settings'
+import Anthropic from '@anthropic-ai/sdk'
+import { env } from '@/lib/env'
 import { logger, ApiError } from '@/lib/error-handler'
 import { generateSlug, generateUniqueSlug } from '@/lib/utils/slug'
 import { detectLanguage } from '@/lib/translation'
@@ -17,15 +17,14 @@ import { injectAffiliateLinks } from '@/lib/utils/affiliate-link-injector'
 import { extractHashtags, extractExcerpt } from '@/lib/threads'
 import type { ThreadsPost } from '@/types/threads'
 
-// Lazy-initialized Gemini client
-let _genAI: GoogleGenerativeAI | null = null
+// Lazy-initialized Anthropic client
+let _anthropic: Anthropic | null = null
 
-async function getGenAI(): Promise<GoogleGenerativeAI> {
-  if (_genAI) return _genAI
-  const apiKey = await getSettingValue('GEMINI_API_KEY')
-  if (!apiKey) throw new ApiError(500, 'GEMINI_API_KEY not configured')
-  _genAI = new GoogleGenerativeAI(apiKey)
-  return _genAI
+function getAnthropic(): Anthropic {
+  if (_anthropic) return _anthropic
+  if (!env.ANTHROPIC_API_KEY) throw new ApiError(500, 'ANTHROPIC_API_KEY not configured')
+  _anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
+  return _anthropic
 }
 
 export interface ConvertThreadToBlogOptions {
@@ -95,9 +94,8 @@ export async function convertThreadToBlog(
     username: threadPost.username,
   })
 
-  // Generate blog content using Gemini AI
-  const genAI = await getGenAI()
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+  // Generate blog content using Claude
+  const anthropic = getAnthropic()
 
   const blogPrompt = `
 ${MASTER_SYSTEM_PROMPT}
@@ -144,9 +142,13 @@ OUTPUT FORMAT (JSON only, no markdown code blocks):
 }
   `.trim()
 
-  const result = await model.generateContent(blogPrompt)
-  const response = await result.response
-  const responseText = response.text()
+  const message = await anthropic.messages.create({
+    model: 'claude-haiku-4-5',
+    max_tokens: 8192,
+    messages: [{ role: 'user', content: blogPrompt }],
+  })
+  const firstBlock = message.content[0]
+  const responseText = firstBlock?.type === 'text' ? firstBlock.text : ''
 
   let generatedData
   try {

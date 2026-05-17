@@ -81,7 +81,7 @@ async function fetchCoverImage(keyword: string, fallbackTitle: string): Promise<
 // Generate topic ideas using Claude
 async function generateTopicIdeas(anthropic: Anthropic): Promise<string[]> {
   const result = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-haiku-4-5',
     max_tokens: 2048,
     messages: [{
       role: 'user',
@@ -112,7 +112,7 @@ async function generateTopicIdeas(anthropic: Anthropic): Promise<string[]> {
 // Generate a single blog post
 async function generateBlogPost(anthropic: Anthropic, topic: string) {
   const result = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-haiku-4-5',
     max_tokens: 8192,
     system: MASTER_SYSTEM_PROMPT,
     messages: [{
