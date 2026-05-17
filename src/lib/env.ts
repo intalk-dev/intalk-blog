@@ -44,6 +44,7 @@ export const env = {
 
   // AI Services
   GEMINI_API_KEY: getOptionalEnv('GEMINI_API_KEY'),
+  ANTHROPIC_API_KEY: getOptionalEnv('ANTHROPIC_API_KEY'),
 
   // YouTube API
   YOUTUBE_API_KEY: getOptionalEnv('YOUTUBE_API_KEY'),

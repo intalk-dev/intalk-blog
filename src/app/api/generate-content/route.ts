@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '@/lib/prisma';
 import { generateContentPrompt, getSystemInstruction, getRelevantKnowledgeContext } from '@/lib/ai-prompts';
 import { env } from '@/lib/env';
@@ -14,7 +14,7 @@ import { unwrapContent } from '@/lib/utils/content'
 import { checkGeminiRateLimit, createRateLimitResponse } from '@/lib/rate-limit';
 import { verifyAdminAuth } from '@/lib/auth';
 
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 async function generateContentHandler(request: NextRequest) {
   // Validate input data
@@ -37,26 +37,25 @@ async function generateContentHandler(request: NextRequest) {
   logger.info('Deduplication check temporarily disabled');
     const existingPostsContext = '';
 
-    // Step 4: Generate content with RAG context and existing posts
-    logger.info('Starting Gemini content generation');
+    // Step 4: Claude Haiku로 콘텐츠 생성 (시스템 지침은 프롬프트 캐싱 적용)
+    logger.info('Starting Claude content generation');
     const systemInstruction = await getSystemInstruction();
-    const fullPrompt = `${systemInstruction}\n\n------\n\n${existingPostsContext}${ragContext}**EXECUTE TASK:**\n\n${generateContentPrompt(prompt, keywords, affiliateProducts)}`;
+    const userPrompt = `${existingPostsContext}${ragContext}**EXECUTE TASK:**\n\n${generateContentPrompt(prompt, keywords, affiliateProducts)}`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    logger.info('Calling Gemini API');
-    const result = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{ text: fullPrompt }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 8192,
-      }
+    logger.info('Calling Claude API');
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 8192,
+      temperature: 0.7,
+      system: [
+        { type: 'text', text: systemInstruction, cache_control: { type: 'ephemeral' } },
+      ],
+      messages: [{ role: 'user', content: userPrompt }],
     });
 
-    logger.info('Gemini API call successful');
-    const responseText = result.response.text();
+    logger.info('Claude API call successful');
+    const firstBlock = message.content[0];
+    const responseText = firstBlock?.type === 'text' ? firstBlock.text : '';
     logger.info('Response text length', { length: responseText.length });
 
     // Step 5: Parse the generated content
