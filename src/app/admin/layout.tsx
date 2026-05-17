@@ -16,7 +16,8 @@ export default function AdminLayout({
               <a href="/admin/analytics" className="text-gray-700 hover:text-gray-900">Analytics</a>
               <a href="/admin/youtube" className="text-gray-700 hover:text-gray-900">YouTube</a>
               <a href="/admin/threads" className="text-gray-700 hover:text-gray-900">Threads</a>
-              <a 
+              <a href="/admin/knowledge" className="text-gray-700 hover:text-gray-900">전문 지식</a>
+              <a
                 href="/api/download/desktop-app" 
                 className="inline-flex items-center gap-2 text-gray-700 hover:text-gray-900 border border-gray-300 px-3 py-2 rounded-md hover:bg-gray-50"
               >

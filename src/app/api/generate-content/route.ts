@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
-import { MASTER_SYSTEM_PROMPT, generateContentPrompt } from '@/lib/ai-prompts';
+import { generateContentPrompt, getSystemInstruction, getRelevantKnowledgeContext } from '@/lib/ai-prompts';
 import { env } from '@/lib/env';
 import { withErrorHandler, logger, ApiError, createSuccessResponse, validateRequest } from '@/lib/error-handler';
 import { generateContentSchema } from '@/lib/validations';
@@ -16,32 +16,6 @@ import { verifyAdminAuth } from '@/lib/auth';
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
-// Generate embedding for a text
-async function generateEmbedding(text: string): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-  const result = await model.embedContent(text);
-  return result.embedding.values;
-}
-
-// Search for similar knowledge using vector similarity
-async function searchSimilarKnowledge(queryEmbedding: number[], limit: number = 3) {
-  // Use pgvector to find similar embeddings
-  const results = await prisma.$queryRaw`
-    SELECT id, content, source,
-           1 - (embedding <=> ${queryEmbedding}::vector) as similarity
-    FROM "Knowledge"
-    ORDER BY embedding <=> ${queryEmbedding}::vector
-    LIMIT ${limit}
-  `;
-
-  return results as Array<{
-    id: string;
-    content: string;
-    source: string | null;
-    similarity: number;
-  }>;
-}
-
 async function generateContentHandler(request: NextRequest) {
   // Validate input data
   const validatedData = await validateRequest(request, generateContentSchema);
@@ -52,28 +26,21 @@ async function generateContentHandler(request: NextRequest) {
     keywordsCount: keywords?.length || 0
   });
 
-  // Step 1 & 2: RAG temporarily disabled for SQLite/Turso compatibility
-  // TODO: Implement SQLite-compatible vector search or use external vector DB
-  logger.info('RAG disabled (pgvector not compatible with SQLite/Turso)');
-  const similarKnowledge: Array<{id: string; content: string; source: string | null; similarity: number}> = [];
+  // Step 1 & 2: 키워드 기반 RAG — Knowledge 테이블에서 관련 전문 지식을 가져옴
+  // (pgvector 벡터 검색은 Turso 비호환이라 키워드 스코어링 방식 사용)
+  const ragContext = await getRelevantKnowledgeContext(
+    [prompt, keywords?.join(' ')].filter(Boolean).join('\n')
+  );
+  logger.info('Knowledge context loaded', { hasContext: ragContext.length > 0 });
 
   // Step 3a: Temporarily disabled - deduplication check causing issues
   logger.info('Deduplication check temporarily disabled');
-    const existingPosts: Array<{title: string; slug: string; tags: string}> = [];
     const existingPostsContext = '';
-
-    // Step 3b: Create RAG context
-    const ragContext = similarKnowledge.length > 0 
-      ? `\n\n**과거 기록 컨텍스트 (Past Knowledge Context):**\n${
-          similarKnowledge.map((k, i) => 
-            `\n[Context ${i + 1}${k.source ? ` - from "${k.source}"` : ''}]:\n${k.content.substring(0, 500)}...`
-          ).join('\n')
-        }\n\n**위 컨텍스트를 참고하여 나의 과거 생각과 스타일을 반영해 글을 작성해주세요.**\n\n`
-      : '';
 
     // Step 4: Generate content with RAG context and existing posts
     logger.info('Starting Gemini content generation');
-    const fullPrompt = `${MASTER_SYSTEM_PROMPT}\n\n------\n\n${existingPostsContext}${ragContext}**EXECUTE TASK:**\n\n${generateContentPrompt(prompt, keywords, affiliateProducts)}`;
+    const systemInstruction = await getSystemInstruction();
+    const fullPrompt = `${systemInstruction}\n\n------\n\n${existingPostsContext}${ragContext}**EXECUTE TASK:**\n\n${generateContentPrompt(prompt, keywords, affiliateProducts)}`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     logger.info('Calling Gemini API');
@@ -189,7 +156,7 @@ async function generateContentHandler(request: NextRequest) {
     slug: post.slug,
     status: post.status,
     scheduledAt: post.scheduledAt,
-    ragContextUsed: similarKnowledge.length > 0
+    ragContextUsed: ragContext.length > 0
   }, new URL(request.url).pathname);
 }
 

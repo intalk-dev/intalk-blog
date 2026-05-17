@@ -1,4 +1,9 @@
 // 인톡 파트너스 블로그 - 보험 전문 콘텐츠 프롬프트
+import { prisma } from '@/lib/prisma'
+
+/** Setting 테이블에 저장되는 시스템 지침 키 */
+export const SYSTEM_INSTRUCTION_KEY = 'system_instruction'
+
 export const MASTER_SYSTEM_PROMPT = `
 ROLE & GOAL: 당신은 인톡 파트너스(blog.intalkpartners.com)의 보험 전문 블로그 라이터입니다.
 목표는 보험에 대해 정확하고 신뢰할 수 있는 정보를 일반 소비자가 이해하기 쉽게 전달하는 것입니다.
@@ -113,4 +118,77 @@ JSON 형식으로 응답:
   "tags": ["태그1", "태그2", "태그3", "태그4", "태그5"]
 }
 `
+}
+
+/**
+ * AI 글 생성에 사용할 시스템 지침을 반환합니다.
+ * 관리자가 /admin/knowledge 에서 수정한 값이 있으면 그것을, 없으면 기본 프롬프트를 사용합니다.
+ */
+export async function getSystemInstruction(): Promise<string> {
+  try {
+    const setting = await prisma.setting.findUnique({
+      where: { key: SYSTEM_INSTRUCTION_KEY },
+    })
+    if (setting?.value?.trim()) {
+      return setting.value
+    }
+  } catch {
+    // DB 미준비 환경 — 기본 프롬프트로 폴백
+  }
+  return MASTER_SYSTEM_PROMPT
+}
+
+/**
+ * 키워드 겹침 기반 간단 RAG.
+ * Knowledge 테이블의 전문 지식 레코드를 query와 비교해 관련도 높은 순으로 컨텍스트를 구성합니다.
+ * (pgvector 벡터 검색이 Turso에서 동작하지 않아 키워드 스코어링 방식을 사용)
+ */
+export async function getRelevantKnowledgeContext(query: string = ''): Promise<string> {
+  const MAX_CHARS_PER_SOURCE = 3500
+  const MAX_SOURCES = 6
+
+  const queryTerms = query
+    .toLowerCase()
+    .split(/[\s,.;:!?()[\]{}"'`~]+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 2)
+
+  const scoreContent = (content: string, source: string) => {
+    if (queryTerms.length === 0) return 1
+    const haystack = `${source}\n${content}`.toLowerCase()
+    return queryTerms.reduce((score, term) => score + (haystack.includes(term) ? 1 : 0), 0)
+  }
+
+  let records: Array<{ id: string; source: string | null; content: string }> = []
+  try {
+    records = await prisma.knowledge.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: { id: true, source: true, content: true },
+    })
+  } catch {
+    // DB 미준비 환경 — 지식 컨텍스트 없이 진행
+    return ''
+  }
+
+  const scored = records
+    .map((record) => ({
+      source: record.source || `knowledge-${record.id}`,
+      content: record.content,
+      score: scoreContent(record.content, record.source || ''),
+    }))
+    .filter((record) => record.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_SOURCES)
+
+  if (scored.length === 0) return ''
+
+  const context = scored
+    .map(
+      (record, i) =>
+        `\n[전문 지식 ${i + 1}${record.source ? ` - "${record.source}"` : ''}]:\n${record.content.slice(0, MAX_CHARS_PER_SOURCE)}`
+    )
+    .join('\n')
+
+  return `\n\n**참고 전문 지식 (Knowledge Context):**\n${context}\n\n**위 전문 지식을 사실 정확성의 근거로 활용해 글을 작성하세요.**\n\n`
 }
