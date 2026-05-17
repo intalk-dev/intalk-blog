@@ -244,7 +244,7 @@ async function generateBlogPost(topic: BlogTopic, index: number) {
 
     console.log('🤖 Calling Claude API...');
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-haiku-4-5',
       max_tokens: 4096,
       temperature: 0.8,
       system: MASTER_SYSTEM_PROMPT,
@@ -327,7 +327,7 @@ async function generateBlogPost(topic: BlogTopic, index: number) {
         coverImage: parsedContent.coverImage,
         status: 'DRAFT',
         scheduledAt: publishDate,
-        author: '인톡 파트너스',
+        author: '인톡보험전문가',
         originalLanguage: 'ko'
       }
     });
