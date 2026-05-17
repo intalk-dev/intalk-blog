@@ -12,6 +12,37 @@ interface KnowledgeFile {
 
 type TabType = 'system-instruction' | 'knowledge-files'
 
+/**
+ * Admin 비밀번호를 sessionStorage에서 가져오거나 입력받습니다.
+ * (/api/admin/* 는 미들웨어 보호 밖이라 ?password= 쿼리로 인증 — AdminPostsTable과 동일 패턴)
+ */
+function getAdminPassword(): string | null {
+  let pw = sessionStorage.getItem('admin_password')
+  if (!pw) {
+    pw = prompt('Admin 비밀번호를 입력하세요:')
+    if (pw) sessionStorage.setItem('admin_password', pw)
+  }
+  return pw
+}
+
+/** URL에 인증 쿼리스트링(?password=)을 부착합니다. */
+function withAuth(url: string): string {
+  const pw = getAdminPassword()
+  if (!pw) return url
+  const sep = url.includes('?') ? '&' : '?'
+  return `${url}${sep}password=${encodeURIComponent(pw)}`
+}
+
+/** 401 응답이면 저장된 비밀번호를 비워 다음 호출에서 다시 입력받게 합니다. */
+function handleAuthError(res: Response): boolean {
+  if (res.status === 401) {
+    sessionStorage.removeItem('admin_password')
+    alert('Admin 인증에 실패했습니다. 비밀번호를 다시 입력해주세요.')
+    return true
+  }
+  return false
+}
+
 export default function KnowledgePage() {
   const [activeTab, setActiveTab] = useState<TabType>('system-instruction')
 
@@ -34,11 +65,12 @@ export default function KnowledgePage() {
   const fetchSystemInstruction = async () => {
     setSystemLoading(true)
     try {
-      const res = await fetch('/api/admin/knowledge?filename=system-instruction.md')
+      const res = await fetch(withAuth('/api/admin/knowledge?filename=system-instruction.md'))
       if (res.ok) {
         const data = await res.json()
         setSystemContent(data.content)
       } else {
+        handleAuthError(res)
         setSystemContent('')
       }
     } catch {
@@ -52,7 +84,7 @@ export default function KnowledgePage() {
   const handleSystemSave = async () => {
     setSystemSaving(true)
     try {
-      const res = await fetch('/api/admin/knowledge', {
+      const res = await fetch(withAuth('/api/admin/knowledge'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: 'system-instruction.md', content: systemContent }),
@@ -60,6 +92,8 @@ export default function KnowledgePage() {
       if (res.ok) {
         setSystemSaved(true)
         setTimeout(() => setSystemSaved(false), 3000)
+      } else {
+        handleAuthError(res)
       }
     } catch {
       // ignore
@@ -72,11 +106,13 @@ export default function KnowledgePage() {
   const fetchFiles = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/knowledge')
+      const res = await fetch(withAuth('/api/admin/knowledge'))
       if (res.ok) {
         const data = await res.json()
         // system-instruction.md는 목록에서 제외
         setFiles(data.files.filter((f: KnowledgeFile) => f.name !== 'system-instruction.md'))
+      } else {
+        handleAuthError(res)
       }
     } catch {
       // ignore
@@ -113,12 +149,13 @@ export default function KnowledgePage() {
 
       const formData = new FormData()
       formData.append('file', file)
-      const res = await fetch('/api/admin/knowledge', {
+      const res = await fetch(withAuth('/api/admin/knowledge'), {
         method: 'POST',
         body: formData,
       })
 
       if (!res.ok) {
+        if (handleAuthError(res)) break
         const data = await res.json().catch(() => ({}))
         alert(data.error || `"${file.name}" 업로드에 실패했습니다.`)
       }
@@ -135,11 +172,15 @@ export default function KnowledgePage() {
     if (!filename.endsWith('.md') && !filename.endsWith('.txt')) {
       filename = `${filename}.md`
     }
-    await fetch('/api/admin/knowledge', {
+    const res = await fetch(withAuth('/api/admin/knowledge'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename, content: editorContent }),
     })
+    if (!res.ok) {
+      handleAuthError(res)
+      return
+    }
     setEditorOpen(false)
     setEditorContent('')
     setEditorFilename('')
@@ -149,13 +190,15 @@ export default function KnowledgePage() {
 
   const handleEdit = async (filename: string) => {
     try {
-      const res = await fetch(`/api/admin/knowledge?filename=${encodeURIComponent(filename)}`)
+      const res = await fetch(withAuth(`/api/admin/knowledge?filename=${encodeURIComponent(filename)}`))
       if (res.ok) {
         const data = await res.json()
         setEditorFilename(filename)
         setEditorContent(data.content)
         setEditingExisting(true)
         setEditorOpen(true)
+      } else {
+        handleAuthError(res)
       }
     } catch {
       // ignore
@@ -165,11 +208,15 @@ export default function KnowledgePage() {
   const handleDelete = async (filename: string) => {
     if (!confirm(`"${filename}" 파일을 삭제할까요?`)) return
 
-    await fetch('/api/admin/knowledge', {
+    const res = await fetch(withAuth('/api/admin/knowledge'), {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename }),
     })
+    if (!res.ok) {
+      handleAuthError(res)
+      return
+    }
     fetchFiles()
   }
 
