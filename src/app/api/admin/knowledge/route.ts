@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic'
  *
  * - 시스템 지침(system-instruction.md)은 Setting 테이블에 저장
  * - 지식 파일은 Knowledge 테이블에 저장 (Vercel 서버리스 파일시스템 read-only 대응)
+ * - 업로드는 모두 JSON(텍스트)으로 받음 — PDF는 브라우저에서 텍스트를 추출해 전송
+ *   (Vercel 요청 본문 4.5MB 제한 및 서버리스 PDF 파싱 불안정 회피)
  * - 업로드한 지식은 AI 글 생성 시 키워드 RAG로 참조됨 (getRelevantKnowledgeContext)
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -13,17 +15,12 @@ import { prisma } from '@/lib/prisma'
 import { verifyAdminAuth } from '@/lib/auth'
 import { MASTER_SYSTEM_PROMPT, SYSTEM_INSTRUCTION_KEY } from '@/lib/ai-prompts'
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-const UPLOAD_EXTENSIONS = ['.txt', '.pdf', '.md']
 const EDIT_EXTENSIONS = ['.md', '.txt']
 const SYSTEM_INSTRUCTION_FILE = 'system-instruction.md'
+const MAX_CONTENT_LENGTH = 4_000_000 // ~4MB (Vercel 요청 본문 한도 여유분)
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 401 })
-}
-
-function makeArchiveContent(filename: string, content: string) {
-  return `# ${filename}\n\n${content.trim()}`
 }
 
 /**
@@ -86,82 +83,25 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/admin/knowledge
- * - FormData(file) : PDF/TXT/MD 업로드 (5MB 제한, Knowledge 테이블 저장)
- * - JSON { filename: 'system-instruction.md', content } : 시스템 지침 저장
- * - JSON { filename, content } : 지식 파일 직접 작성/수정 (.md/.txt)
+ * JSON { filename, content }
+ * - filename === 'system-instruction.md' : 시스템 지침 저장 (Setting 테이블)
+ * - 그 외 (.md/.txt) : 지식 파일 저장/수정 (Knowledge 테이블)
+ *   PDF는 브라우저에서 텍스트 추출 후 .txt 로 전송됨
  */
 export async function POST(request: NextRequest) {
   if (!verifyAdminAuth(request)) return unauthorized()
 
-  const contentType = request.headers.get('content-type') || ''
-
-  // FormData 모드 (파일 업로드)
-  if (contentType.includes('multipart/form-data')) {
-    try {
-      const formData = await request.formData()
-      const file = formData.get('file') as File | null
-
-      if (!file) {
-        return NextResponse.json({ error: '파일이 필요합니다.' }, { status: 400 })
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        return NextResponse.json({ error: '파일 크기는 5MB 이하여야 합니다.' }, { status: 400 })
-      }
-
-      const safeName = path.basename(file.name)
-      const ext = path.extname(safeName).toLowerCase()
-      if (!UPLOAD_EXTENSIONS.includes(ext)) {
-        return NextResponse.json(
-          { error: '.txt, .md, .pdf 파일만 업로드할 수 있습니다.' },
-          { status: 400 }
-        )
-      }
-
-      let archiveName = safeName
-      let archiveContent = ''
-
-      if (ext === '.pdf') {
-        // PDF → 텍스트 추출 → .txt 로 아카이빙
-        try {
-          const { PDFParse } = await import('pdf-parse')
-          const arrayBuffer = await file.arrayBuffer()
-          const pdf = new PDFParse({ data: new Uint8Array(arrayBuffer) })
-          const textResult = await pdf.getText()
-          archiveName = safeName.replace(/\.pdf$/i, '.txt')
-          archiveContent = makeArchiveContent(`${safeName} (PDF에서 추출)`, textResult.text)
-        } catch (err) {
-          console.error('PDF 파싱 실패:', err)
-          return NextResponse.json(
-            { error: 'PDF 파일을 읽을 수 없습니다. 파일이 손상되었거나 암호화되어 있을 수 있습니다.' },
-            { status: 400 }
-          )
-        }
-      } else {
-        archiveContent = makeArchiveContent(safeName, await file.text())
-      }
-
-      await prisma.knowledge.deleteMany({ where: { source: archiveName } })
-      const record = await prisma.knowledge.create({
-        data: { source: archiveName, content: archiveContent },
-      })
-
-      return NextResponse.json({
-        ok: true,
-        filename: archiveName,
-        id: record.id,
-        converted: ext === '.pdf',
-      })
-    } catch {
-      return NextResponse.json({ error: '파일 업로드에 실패했습니다.' }, { status: 500 })
-    }
-  }
-
-  // JSON 모드 (인라인 에디터 / 시스템 지침)
   try {
     const { filename, content } = await request.json()
 
     if (!filename || typeof content !== 'string') {
       return NextResponse.json({ error: '파일 이름과 내용이 필요합니다.' }, { status: 400 })
+    }
+    if (content.length > MAX_CONTENT_LENGTH) {
+      return NextResponse.json(
+        { error: '내용이 너무 깁니다. 파일을 나눠서 업로드해주세요.' },
+        { status: 400 }
+      )
     }
 
     // 시스템 지침 저장 (Setting 테이블)
@@ -179,9 +119,12 @@ export async function POST(request: NextRequest) {
     const ext = path.extname(safeName).toLowerCase()
     if (!EDIT_EXTENSIONS.includes(ext)) {
       return NextResponse.json(
-        { error: '.md 또는 .txt 파일만 직접 편집할 수 있습니다.' },
+        { error: '.md 또는 .txt 형식만 저장할 수 있습니다.' },
         { status: 400 }
       )
+    }
+    if (!content.trim()) {
+      return NextResponse.json({ error: '내용이 비어 있습니다.' }, { status: 400 })
     }
 
     await prisma.knowledge.deleteMany({ where: { source: safeName } })

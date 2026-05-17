@@ -43,6 +43,26 @@ function handleAuthError(res: Response): boolean {
   return false
 }
 
+/**
+ * 브라우저에서 PDF의 텍스트를 추출합니다.
+ * (서버리스 PDF 파싱 불안정 + Vercel 요청 본문 4.5MB 제한 회피 — 추출된 텍스트만 전송)
+ */
+async function extractPdfText(file: File): Promise<string> {
+  const pdfjs = await import('pdfjs-dist')
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+
+  const data = new Uint8Array(await file.arrayBuffer())
+  const pdf = await pdfjs.getDocument({ data }).promise
+
+  let text = ''
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum)
+    const content = await page.getTextContent()
+    text += content.items.map((item) => ('str' in item ? item.str : '')).join(' ') + '\n'
+  }
+  return text.trim()
+}
+
 export default function KnowledgePage() {
   const [activeTab, setActiveTab] = useState<TabType>('system-instruction')
 
@@ -126,7 +146,7 @@ export default function KnowledgePage() {
     fetchFiles()
   }, [])
 
-  // 파일 업로드 (PDF/TXT/MD)
+  // 파일 업로드 (PDF/TXT/MD) — 브라우저에서 텍스트로 변환 후 JSON 전송
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadFiles = e.target.files
     if (!uploadFiles) return
@@ -136,28 +156,46 @@ export default function KnowledgePage() {
       const file = uploadFiles[i]
       const ext = file.name.split('.').pop()?.toLowerCase()
 
-      // 5MB 체크
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`"${file.name}" 파일이 5MB를 초과합니다.`)
-        continue
-      }
-
       if (ext !== 'pdf' && ext !== 'txt' && ext !== 'md') {
         alert(`"${file.name}" 파일은 업로드할 수 없습니다. PDF, TXT, MD 파일만 지원합니다.`)
         continue
       }
 
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch(withAuth('/api/admin/knowledge'), {
-        method: 'POST',
-        body: formData,
-      })
+      try {
+        let filename = file.name
+        let content = ''
 
-      if (!res.ok) {
-        if (handleAuthError(res)) break
-        const data = await res.json().catch(() => ({}))
-        alert(data.error || `"${file.name}" 업로드에 실패했습니다.`)
+        if (ext === 'pdf') {
+          content = await extractPdfText(file)
+          if (!content) {
+            alert(`"${file.name}"에서 텍스트를 추출하지 못했습니다. 스캔본(이미지) PDF는 지원하지 않습니다.`)
+            continue
+          }
+          // PDF는 추출한 텍스트를 .txt 로 저장
+          filename = file.name.replace(/\.pdf$/i, '.txt')
+        } else {
+          content = await file.text()
+        }
+
+        if (content.length > 3 * 1024 * 1024) {
+          alert(`"${file.name}"의 텍스트가 너무 깁니다(3MB 초과). 파일을 나눠서 업로드해주세요.`)
+          continue
+        }
+
+        const res = await fetch(withAuth('/api/admin/knowledge'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename, content }),
+        })
+
+        if (!res.ok) {
+          if (handleAuthError(res)) break
+          const data = await res.json().catch(() => ({}))
+          alert(data.error || `"${file.name}" 업로드에 실패했습니다.`)
+        }
+      } catch (err) {
+        console.error('업로드 처리 실패:', err)
+        alert(`"${file.name}" 처리 중 오류가 발생했습니다.`)
       }
     }
     setUploading(false)
@@ -341,7 +379,7 @@ export default function KnowledgePage() {
               </button>
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              .txt, .md, .pdf 파일만 업로드할 수 있습니다 (5MB 제한). 업로드된 파일은 지식 자료로 아카이빙되어 다음 AI 글 생성부터 참고됩니다.
+              .txt, .md, .pdf 파일을 업로드할 수 있습니다. PDF는 브라우저에서 텍스트를 추출해 저장합니다. 업로드된 지식은 다음 AI 글 생성부터 참고됩니다.
             </p>
           </div>
 
