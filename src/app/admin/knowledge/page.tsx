@@ -46,6 +46,10 @@ function handleAuthError(res: Response): boolean {
 /**
  * 브라우저에서 PDF의 텍스트를 추출합니다.
  * (서버리스 PDF 파싱 불안정 + Vercel 요청 본문 4.5MB 제한 회피 — 추출된 텍스트만 전송)
+ *
+ * 글자 위치(transform)를 보고 띄어쓰기를 복원합니다.
+ * 단순히 텍스트 조각을 공백으로 이어붙이면 한글 PDF에서 "소 득"처럼
+ * 단어 내부에 공백이 끼어 키워드 검색이 깨지므로, 가로 간격이 있을 때만 공백을 넣습니다.
  */
 async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import('pdfjs-dist')
@@ -58,7 +62,33 @@ async function extractPdfText(file: File): Promise<string> {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum)
     const content = await page.getTextContent()
-    text += content.items.map((item) => ('str' in item ? item.str : '')).join(' ') + '\n'
+
+    let prevEndX: number | null = null
+    for (const item of content.items) {
+      if (!('str' in item)) continue
+
+      const x = item.transform[4]
+      const fontHeight = item.height || 10
+
+      // 직전 조각과 가로 간격이 폰트 높이의 30%를 넘으면 실제 띄어쓰기로 간주
+      if (
+        prevEndX !== null &&
+        x - prevEndX > fontHeight * 0.3 &&
+        !text.endsWith(' ') &&
+        !text.endsWith('\n')
+      ) {
+        text += ' '
+      }
+
+      text += item.str
+      prevEndX = x + item.width
+
+      if (item.hasEOL) {
+        text += '\n'
+        prevEndX = null
+      }
+    }
+    text += '\n'
   }
   return text.trim()
 }
