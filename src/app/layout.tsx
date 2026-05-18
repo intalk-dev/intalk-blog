@@ -86,6 +86,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: siteConfig.verification.google || undefined,
+    other: siteConfig.verification.naver
+      ? { 'naver-site-verification': siteConfig.verification.naver }
+      : undefined,
   },
 };
 

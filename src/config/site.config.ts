@@ -62,7 +62,7 @@ export const siteConfig = {
   /** 검색엔진 사이트 인증 코드 (빈 문자열이면 meta 태그 렌더링 안 함) */
   verification: {
     google: 'zJWL2HU6G6y5XJNG5042zFjUCqT_bYYPO-FEEu8U_CA',
-    naver: '',
+    naver: 'f3f32213ff7bbbbe4ea9f148f52776f28bec5bc8',
   },
 
   /** 분석 도구 ID (빈 문자열이면 스크립트 로딩 안 함) */
