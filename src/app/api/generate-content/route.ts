@@ -59,40 +59,28 @@ async function generateContentHandler(request: NextRequest) {
     const responseText = firstBlock?.type === 'text' ? firstBlock.text : '';
     logger.info('Response text length', { length: responseText.length });
 
+    // 응답이 max_tokens 한도로 잘리면 JSON이 깨짐 → 깨진 글 저장 방지
+    if (message.stop_reason === 'max_tokens') {
+      throw new ApiError(502, 'AI 응답이 토큰 한도로 잘렸습니다. 다시 시도해 주세요.');
+    }
+
     // Step 5: Parse the generated content
+    // 파싱 실패 시 원본 JSON을 본문으로 저장하면 마크다운이 깨지므로, 에러로 중단
+    let jsonText = responseText.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
     let parsedContent;
     try {
-      // Remove markdown code block wrapper if present
-      let jsonText = responseText.trim();
-      if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-
       parsedContent = JSON.parse(jsonText);
-
-      // IMPORTANT: If parsed content already has a 'content' field,
-      // ensure we're using ONLY that content, not the entire JSON
-      if (parsedContent.content && typeof parsedContent.content === 'string') {
-        // Content is already extracted correctly
-      } else if (typeof parsedContent === 'object' && !parsedContent.content) {
-        // JSON doesn't have a content field, treat entire text as content
-        parsedContent = {
-          title: parsedContent.title || prompt.substring(0, 60),
-          content: responseText,
-          excerpt: parsedContent.excerpt || responseText.substring(0, 160),
-          tags: parsedContent.tags || keywords || []
-        };
-      }
     } catch {
-      // If not JSON, wrap in content object
-      parsedContent = {
-        title: prompt.substring(0, 60),
-        content: responseText,
-        excerpt: responseText.substring(0, 160),
-        tags: keywords || []
-      };
+      throw new ApiError(502, 'AI 응답을 JSON으로 파싱하지 못했습니다. 다시 시도해 주세요.');
+    }
+    if (!parsedContent || typeof parsedContent.content !== 'string' || !parsedContent.content.trim()) {
+      throw new ApiError(502, 'AI 응답에 본문(content)이 없습니다. 다시 시도해 주세요.');
     }
 
     // Step 6: Save to database as draft

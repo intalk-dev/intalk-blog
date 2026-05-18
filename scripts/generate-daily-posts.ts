@@ -245,7 +245,7 @@ async function generateBlogPost(topic: BlogTopic, index: number) {
     console.log('🤖 Calling Claude API...');
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 4096,
+      max_tokens: 8192,
       temperature: 0.8,
       system: MASTER_SYSTEM_PROMPT,
       messages: [{
@@ -254,23 +254,26 @@ async function generateBlogPost(topic: BlogTopic, index: number) {
       }]
     });
 
+    // 응답이 max_tokens 한도로 잘리면 JSON이 깨짐 → 깨진 글 저장 방지 위해 건너뜀
+    if (message.stop_reason === 'max_tokens') {
+      throw new Error('Claude 응답이 max_tokens 한도로 잘렸습니다 — 글 생성을 건너뜁니다.');
+    }
+
     let responseText = message.content[0].type === 'text' ? message.content[0].text : '';
 
     // Strip markdown code block wrapper if present (```json ... ```)
     responseText = responseText.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '');
 
     // Step 5: Parse the generated content
+    // 파싱 실패 시 원본 JSON을 본문으로 저장하면 마크다운이 깨지므로, 글 생성을 건너뜀
     let parsedContent;
     try {
       parsedContent = JSON.parse(responseText);
     } catch {
-      // If not JSON, wrap in content object
-      parsedContent = {
-        title: topic.prompt.substring(0, 60),
-        content: responseText,
-        excerpt: responseText.substring(0, 160),
-        tags: topic.keywords
-      };
+      throw new Error('Claude 응답을 JSON으로 파싱하지 못했습니다 — 글 생성을 건너뜁니다.');
+    }
+    if (!parsedContent || typeof parsedContent.content !== 'string' || !parsedContent.content.trim()) {
+      throw new Error('Claude 응답에 본문(content)이 없습니다 — 글 생성을 건너뜁니다.');
     }
 
     // Step 5.5: Fetch cover image from Unsplash using English keywords
