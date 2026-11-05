@@ -5,23 +5,5 @@
   "installCommand": "pnpm install",
   "env": {
     "NEXT_PUBLIC_NODE_ENV": "production"
-  },
-  "crons": [
-    {
-      "path": "/api/cron/daily-affiliate",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/coupang-hotdeal",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/publish-posts",
-      "schedule": "5 0 * * *"
-    },
-    {
-      "path": "/api/cron/youtube-sync",
-      "schedule": "0 6 * * *"
-    }
-  ]
+  }
 }
